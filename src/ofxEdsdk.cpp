@@ -281,6 +281,7 @@ namespace ofxEdsdk {
 					unlock();
 				}
 			}
+			ofSleepMillis(40);
 			
 			if(needToTakePhoto) {
 				try {
