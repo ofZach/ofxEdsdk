@@ -13,9 +13,11 @@ namespace ofxEdsdk {
 	
 	class Camera : public ofThread {
 	public:
+        enum FocusState { OFX_EDSDK_FOCUS_UNKNOWN, OFX_EDSDK_FOCUSING, OFX_EDSDK_FOCUS_OK,
+            OFX_EDSDK_FOCUS_FAIL, OFX_EDSDK_FOCUS_NONAF };
 		Camera();
 		~Camera();
-		bool setup(int deviceId = 0);
+		bool setup(int deviceId = 0, int orientationMode90 = 0);
 		
 		void update();
 		bool isFrameNew();
@@ -25,15 +27,27 @@ namespace ofxEdsdk {
 		void draw(float x, float y);
 		void draw(float x, float y, float width, float height);
 		ofPixels& getLivePixels();
+		ofTexture& getLiveTexture();
 		float getFrameRate();
 		
 		void takePhoto(bool blocking = false);
 		bool isPhotoNew();
 		void drawPhoto(float x, float y);
 		void drawPhoto(float x, float y, float width, float height);
-		void savePhoto(string filename); // .jpg only
+		bool savePhoto(string filename); // .jpg only
 		ofPixels& getPhotoPixels();
-		
+		ofTexture& getPhotoTexture();
+        
+        void beginMovieRecording();
+        void endMovieRecording();
+        bool isMovieNew();
+
+        void focusFrame();
+        FocusState getFocusState();
+        bool isButtonPressed();
+        void takePhotoAF();
+        void takePhotoNonAF();
+
 	protected:
 		EdsCameraRef camera;
 		
@@ -78,8 +92,24 @@ namespace ofxEdsdk {
 		bool photoDataReady; // Photo data has been downloaded at least once.
 		bool needToSendKeepAlive; // Send keepalive next chance we get.
 		bool needToDownloadImage; // Download image next chance we get.
+        bool needToCheckFocus;
+        bool needToPressShutterButtonHalfway;
+        bool needToCompletelyPressShutterButton;
+        bool needToReleaseShutterButton;
+
+        FocusState currentFocusState;
+        void focusFailed();
+
+        bool movieNew;
+        bool needToStartRecording; // threadedFunction() should start recording next chance it gets.
+        bool needToStopRecording; // threadedFunction() should start recording next chance it gets.
 		
 		void threadedFunction();
+        		
+		// the liveview needs to be reset every so often to avoid the camera turning off
+		float resetIntervalMinutes;
+		float lastResetTime;
+		void resetLiveView();
 		
 		static EdsError EDSCALLBACK handleObjectEvent(EdsObjectEvent event, EdsBaseRef object, EdsVoid* context);
 		static EdsError EDSCALLBACK handlePropertyEvent(EdsPropertyEvent event, EdsPropertyID propertyId, EdsUInt32 param, EdsVoid* context);
@@ -90,5 +120,12 @@ namespace ofxEdsdk {
 		void setSendKeepAlive();
 		
 		EdsDirectoryItemRef directoryItem;
+        
+        int rotateMode90;
+        
+#ifdef TARGET_OSX        
+        int initTime;
+        bool bTryInitLiveView;
+#endif
 	};
 }
