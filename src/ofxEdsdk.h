@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 
 /*
  ofxEdsdk lets OF talk to Canon cameras using a simple interface.

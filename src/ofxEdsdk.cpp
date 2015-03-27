@@ -8,8 +8,8 @@
  but one frame happens to last 200 ms, and your buffer size is 4, you will drop
  2 frames.
  */
-#define OFX_EDSDK_BUFFER_SIZE 4
-#define OFX_EDSDK_LIVE_DELAY 100
+#define OFX_EDSDK_BUFFER_SIZE 2
+#define OFX_EDSDK_LIVE_DELAY 50
 
 #define OFX_EDSDK_JPG_FORMAT 14337
 #define OFX_EDSDK_MOV_FORMAT 45316
@@ -231,6 +231,7 @@ namespace ofxEdsdk {
 
     void Camera::focusFrame(){
         lock();
+		cout <<"focusing " << endl;
         needToPressShutterButtonHalfway = true;
         currentFocusState = OFX_EDSDK_FOCUSING;
         unlock();
@@ -238,6 +239,7 @@ namespace ofxEdsdk {
 
     void Camera::focusFailed(){
         lock();
+		cout <<"failed " << endl;
         needToCheckFocus = false;
         needToReleaseShutterButton = true;
         needToPressShutterButtonHalfway = false;
@@ -406,7 +408,6 @@ namespace ofxEdsdk {
 					unlock();
 				}
 			}
-			ofSleepMillis(40);
 			
 			if(needToTakePhoto) {
 				try {
@@ -485,20 +486,24 @@ namespace ofxEdsdk {
                 try{
                     EdsFocusInfo focusInfo;
                     Eds::GetPropertyData(camera, kEdsPropID_FocusInfo, 0, sizeof(focusInfo), &focusInfo);
+					cout << focusInfo.focusPoint[0].justFocus << endl;
+					cout << focusInfo.pointNumber << endl;
 
-                    if(focusInfo.focusPoint[0].justFocus == 16){
+                    if(focusInfo.focusPoint[0].justFocus != 0
+						){
                         Eds::SendCommand(camera, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
-                        lock();
-                        needToPressShutterButtonHalfway = true;
-                        unlock();
-                    }
-                    else if(focusInfo.focusPoint[0].justFocus == 17){
                         lock();
                         currentFocusState = OFX_EDSDK_FOCUS_OK;
                         needToCheckFocus = false;
                         unlock();
                     }
-                    else if(focusInfo.focusPoint[0].justFocus == 18){
+                    /*else if(focusInfo.focusPoint[0].justFocus == 17){
+                        lock();
+                        currentFocusState = OFX_EDSDK_FOCUS_OK;
+                        needToCheckFocus = false;
+                        unlock();
+                    }*/
+                    else {
                         focusFailed();
                     }
                 } catch (Eds::Exception& e) {
@@ -556,7 +561,7 @@ namespace ofxEdsdk {
 			}
 
 			// the t2i can run at 30 fps = 33 ms, so this might cause frame drops
-			ofSleepMillis(5);
+			ofSleepMillis(100);
 		}
 #ifdef TARGET_OSX
 		[pool drain];
